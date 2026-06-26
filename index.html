@@ -23,6 +23,7 @@
     <nav aria-label="Main Navigation">
       <ul class="nav-links">
         <li><a href="#catalog" id="nav-shop">Shop Marketplace</a></li>
+        <li><a href="#planner" id="nav-planner">Farm Planner</a></li>
         <li><a href="#about" id="nav-about">Our Mission</a></li>
         <li><a href="#services" id="nav-services">Agri-Doctor Support</a></li>
       </ul>
@@ -373,6 +374,114 @@
             <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
           </svg>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MY FARM ESTIMATOR & PLANNER -->
+  <section class="planner-section" id="planner">
+    <div class="section-header">
+      <h2>My Farm Yield Estimator & Planner</h2>
+      <p>Enter your agricultural space specs to get custom crop densities, watering recommendations, and harvest yields.</p>
+    </div>
+    
+    <div class="planner-card">
+      <div class="planner-inputs">
+        <h3 style="font-family: var(--font-headings); font-weight: 700; margin-bottom: 20px;">1. Configure Land & Soil</h3>
+        
+        <div class="form-group">
+          <label for="planner-crop">Target Crop Type</label>
+          <select id="planner-crop" aria-label="Select target crop">
+            <option value="1">Organic Heirloom Tomato</option>
+            <option value="8">Golden Sweetcorn</option>
+            <option value="4">Oyster Mushroom (Grow Kit)</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="planner-area">Garden / Planting Area (sq. ft.)</label>
+          <input type="range" id="planner-area" min="10" max="1000" step="10" value="100" aria-label="Garden planting area size">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-top: 5px;">
+            <span>10 sq. ft.</span>
+            <span id="planner-area-val" style="color: var(--primary-green-dark);">100 sq. ft.</span>
+            <span>1000 sq. ft.</span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="planner-soil">Soil Texture / Type</label>
+          <select id="planner-soil" aria-label="Select soil type">
+            <option value="loamy">Loamy Soil (Ideal - Nutrient Rich)</option>
+            <option value="sandy">Sandy Soil (Drains Fast - Needs nutrients)</option>
+            <option value="clay">Clay Soil (Dense - Needs composting boosters)</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="planner-results">
+        <h3 style="font-family: var(--font-headings); font-weight: 700; margin-bottom: 20px;">2. Expected Results & Metrics</h3>
+        
+        <div class="results-dashboard">
+          <div class="metric-card">
+            <div class="metric-icon">🌱</div>
+            <div class="metric-data">
+              <span class="metric-label">Max Plants Recommended</span>
+              <span class="metric-value" id="metric-density">50 plants</span>
+            </div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-icon">💧</div>
+            <div class="metric-data">
+              <span class="metric-label">Water Needed / Day</span>
+              <span class="metric-value" id="metric-water">30 gallons</span>
+            </div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-icon">📦</div>
+            <div class="metric-data">
+              <span class="metric-label">Est. Seasonal Yield</span>
+              <span class="metric-value" id="metric-yield">150 lbs</span>
+            </div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-icon">🧪</div>
+            <div class="metric-data">
+              <span class="metric-label">Soil Amendment Advice</span>
+              <span class="metric-value" id="metric-advice" style="font-size: 0.85rem; line-height: 1.3;">Apply compost booster weekly.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FLOATING COMPARE BAR -->
+  <div class="compare-bar" id="compare-bar">
+    <div class="compare-bar-content">
+      <span class="compare-count-text"><span id="compare-count-num">0</span> items selected for comparison</span>
+      <div class="compare-actions">
+        <button class="btn btn-secondary" id="compare-clear-btn" style="padding: 8px 16px; font-size: 0.85rem;">Clear</button>
+        <button class="btn btn-primary" id="compare-now-btn" style="padding: 8px 20px; font-size: 0.85rem;">Compare Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARE DETAILS MODAL -->
+  <div class="modal-overlay" id="compare-modal-overlay">
+    <div class="modal-container" style="max-width: 850px;" role="dialog" aria-modal="true" aria-labelledby="compare-modal-title">
+      <button class="close-btn modal-close" id="close-compare-btn" aria-label="Close compare modal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div style="padding: 30px;">
+        <h2 id="compare-modal-title" style="font-family: var(--font-headings); font-weight: 800; margin-bottom: 25px;">Product Comparison Matrix</h2>
+        <div class="compare-table-wrapper" id="compare-table-wrapper">
+          <!-- JS populated comparison table -->
+        </div>
       </div>
     </div>
   </div>

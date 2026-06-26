@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   // --- APPLICATION STATE ---
   let cart = JSON.parse(localStorage.getItem('agrobloom_cart')) || [];
+  let compareList = [];
   let currentCategory = 'All';
   let searchQuery = '';
   let maxPrice = 50;
@@ -58,6 +59,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatSendBtn = document.getElementById('chat-send-btn');
   const chatSuggestions = document.getElementById('chat-suggestions');
   const chatBadge = document.getElementById('chat-badge');
+
+  // Compare elements
+  const compareBar = document.getElementById('compare-bar');
+  const compareCountNum = document.getElementById('compare-count-num');
+  const compareClearBtn = document.getElementById('compare-clear-btn');
+  const compareNowBtn = document.getElementById('compare-now-btn');
+  const compareModalOverlay = document.getElementById('compare-modal-overlay');
+  const closeCompareBtn = document.getElementById('close-compare-btn');
+  const compareTableWrapper = document.getElementById('compare-table-wrapper');
+
+  // Planner elements
+  const plannerCrop = document.getElementById('planner-crop');
+  const plannerArea = document.getElementById('planner-area');
+  const plannerAreaVal = document.getElementById('planner-area-val');
+  const plannerSoil = document.getElementById('planner-soil');
+  const metricDensity = document.getElementById('metric-density');
+  const metricWater = document.getElementById('metric-water');
+  const metricYield = document.getElementById('metric-yield');
+  const metricAdvice = document.getElementById('metric-advice');
 
   // --- THEME MANAGEMENT ---
   const applyTheme = (newTheme) => {
@@ -147,10 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
     productsGrid.innerHTML = filtered.map(product => {
       const tagClass = product.tag ? `tag-${product.tag.toLowerCase().replace(' ', '-')}` : '';
       const tagBadge = product.tag ? `<div class="card-badge ${tagClass}">${product.tag}</div>` : '';
+      const isCompared = compareList.includes(product.id) ? 'checked' : '';
       
       return `
         <div class="product-card" data-id="${product.id}">
           ${tagBadge}
+          <div class="compare-select-wrap">
+            <input type="checkbox" class="compare-checkbox" data-id="${product.id}" ${isCompared}>
+            <span>Compare</span>
+          </div>
           <div class="product-card-img" onclick="window.openDetails(${product.id})">
             <img src="${product.image}" alt="${product.name}" loading="lazy">
           </div>
@@ -175,6 +200,24 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }).join('');
+
+    // Bind checkbox change listeners
+    document.querySelectorAll('.compare-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const id = parseInt(e.target.getAttribute('data-id'));
+        if (e.target.checked) {
+          if (compareList.length >= 3) {
+            e.target.checked = false;
+            alert('You can compare up to 3 products at a time!');
+            return;
+          }
+          compareList.push(id);
+        } else {
+          compareList = compareList.filter(item => item !== id);
+        }
+        updateCompareBar();
+      });
+    });
   };
 
   const generateStarsHTML = (rating) => {
@@ -544,11 +587,40 @@ document.addEventListener('DOMContentLoaded', () => {
     produce: "Looking for fresh harvest? Check out our **Gourmet Mushroom Grow Kit** (harvest oysters in 10 days at home) or our organic sweet **Raw Wildflower Honeycomb**."
   };
 
-  const addChatMessage = (sender, text) => {
+  // Maps bot categories to product ID shortcuts
+  const botShortcuts = {
+    seeds: [1, 8],
+    tomato: [1],
+    soil: [5],
+    fertilizer: [2],
+    tools: [3, 6],
+    produce: [4, 7]
+  };
+
+  const addChatMessage = (sender, text, buttons = []) => {
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-msg ${sender}`;
     // Support basic bolding
     msgDiv.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    if (buttons.length > 0) {
+      const btnWrapper = document.createElement('div');
+      btnWrapper.className = 'chat-btn-wrapper';
+      buttons.forEach(btnInfo => {
+        const btn = document.createElement('button');
+        btn.className = 'chat-shortcut-btn';
+        btn.innerHTML = `🛒 Add ${btnInfo.name}`;
+        btn.onclick = () => {
+          window.addItemToCart(btnInfo.id);
+          btn.innerHTML = '✓ Added!';
+          btn.style.backgroundColor = 'var(--primary-green-dark)';
+          setTimeout(() => btn.innerHTML = `🛒 Add ${btnInfo.name}`, 1500);
+        };
+        btnWrapper.appendChild(btn);
+      });
+      msgDiv.appendChild(btnWrapper);
+    }
+
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
@@ -556,16 +628,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const handleBotResponse = (userText) => {
     const text = userText.toLowerCase();
     let reply = "Hello! I am AgroBloom's Agri-Doctor. I can help recommend seeds, fertilizers, soil enhancement, tools, and crop advice. Just ask me about 'seeds', 'tomatoes', 'soil', 'fertilizer', or 'tools'!";
+    let buttons = [];
 
     for (const key in botAnswers) {
       if (text.includes(key)) {
         reply = botAnswers[key];
+        
+        // Find matching shortcuts
+        if (botShortcuts[key]) {
+          buttons = botShortcuts[key].map(pid => {
+            const prod = productsList.find(p => p.id === pid);
+            return prod ? { name: prod.name.split(' ').slice(-2).join(' '), id: prod.id } : null;
+          }).filter(x => x !== null);
+        }
         break;
       }
     }
 
     setTimeout(() => {
-      addChatMessage('bot', reply);
+      addChatMessage('bot', reply, buttons);
     }, 600);
   };
 
@@ -628,8 +709,157 @@ document.addEventListener('DOMContentLoaded', () => {
     renderProducts();
   });
 
+  // --- COMPARE WIDGET CONTROLLER ---
+  const updateCompareBar = () => {
+    compareCountNum.textContent = compareList.length;
+    if (compareList.length >= 2) {
+      compareBar.classList.add('active');
+    } else {
+      compareBar.classList.remove('active');
+    }
+  };
+
+  compareClearBtn.addEventListener('click', () => {
+    compareList = [];
+    updateCompareBar();
+    renderProducts();
+  });
+
+  compareNowBtn.addEventListener('click', () => {
+    renderCompareTable();
+    compareModalOverlay.classList.add('active');
+  });
+
+  const renderCompareTable = () => {
+    const matchedProds = compareList.map(pid => productsList.find(p => p.id === pid)).filter(x => x !== undefined);
+    
+    if (matchedProds.length === 0) {
+      compareTableWrapper.innerHTML = `<p style="padding: 20px; text-align: center; color: var(--text-muted);">Please select products to compare.</p>`;
+      return;
+    }
+
+    compareTableWrapper.innerHTML = `
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Specification</th>
+            ${matchedProds.map(p => `
+              <td>
+                <div class="compare-img-slot">
+                  <img src="${p.image}" alt="${p.name}">
+                </div>
+                <div class="compare-title-cell">${p.name}</div>
+              </td>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Category</th>
+            ${matchedProds.map(p => `<td>${p.category}</td>`).join('')}
+          </tr>
+          <tr>
+            <th>Price</th>
+            ${matchedProds.map(p => `<td style="font-weight: 700; color: var(--primary-green-dark);">$${p.price.toFixed(2)}</td>`).join('')}
+          </tr>
+          <tr>
+            <th>Germination / Speed</th>
+            ${matchedProds.map(p => `<td>${p.features[2] || 'Fast growth'}</td>`).join('')}
+          </tr>
+          <tr>
+            <th>Organic Grade</th>
+            ${matchedProds.map(p => `<td>${p.tag || 'Tested Grade'}</td>`).join('')}
+          </tr>
+          <tr>
+            <th>Rating</th>
+            ${matchedProds.map(p => `<td>${p.rating} ★ (${p.reviewsCount} reviews)</td>`).join('')}
+          </tr>
+          <tr>
+            <th>Description</th>
+            ${matchedProds.map(p => `<td style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">${p.description}</td>`).join('')}
+          </tr>
+          <tr>
+            <th>Purchase Action</th>
+            ${matchedProds.map(p => `
+              <td>
+                <button class="btn btn-primary" onclick="window.addItemToCart(${p.id}); document.getElementById('compare-modal-overlay').classList.remove('active');" style="padding: 10px 18px; font-size: 0.85rem;">
+                  Add to Cart
+                </button>
+              </td>
+            `).join('')}
+          </tr>
+        </tbody>
+      </table>
+    `;
+  };
+
+  closeCompareBtn.addEventListener('click', () => {
+    compareModalOverlay.classList.remove('active');
+  });
+
+  compareModalOverlay.addEventListener('click', (e) => {
+    if (e.target === compareModalOverlay) compareModalOverlay.classList.remove('active');
+  });
+
+  // --- MY FARM PLANNING ESTIMATOR ---
+  const calculatePlannerYield = () => {
+    const pid = parseInt(plannerCrop.value);
+    const area = parseFloat(plannerArea.value);
+    const soil = plannerSoil.value;
+    
+    plannerAreaVal.textContent = `${area} sq. ft.`;
+
+    const cropObj = productsList.find(p => p.id === pid);
+    if (!cropObj) return;
+
+    let spacingVal = 4; // sq ft per plant default (Tomato)
+    let waterFactor = 0.5; // gallons per day per plant default
+    let yieldFactor = 8; // lbs yield per plant default
+    
+    if (pid === 8) { // Sweetcorn
+      spacingVal = 1.5;
+      waterFactor = 0.35;
+      yieldFactor = 1.8;
+    } else if (pid === 4) { // Mushroom Grow Kit
+      spacingVal = 2;
+      waterFactor = 0.08;
+      yieldFactor = 2.2;
+    }
+
+    // density calculation
+    const density = Math.floor(area / spacingVal);
+    
+    // adjust water consumption factors based on soil properties
+    let soilWaterMod = 1.0;
+    let adviceText = "";
+    
+    if (soil === 'sandy') {
+      soilWaterMod = 1.25;
+      adviceText = "Sandy soil drains rapidly. Work in **Bio-Humus Compost Booster** to bind nutrients and apply **Seaweed Nutrient** every 10 days to counter leaching.";
+    } else if (soil === 'clay') {
+      soilWaterMod = 0.85;
+      adviceText = "Clay holds moisture but compacts easily. Mix in **Bio-Humus Compost Booster** to aerate root channels and avoid overwatering.";
+    } else {
+      adviceText = "Loamy soil is ideal! Maintain organic matter with **Bio-Humus Compost Booster** monthly and spray **Seaweed Nutrient** for mid-season vigor.";
+    }
+
+    const waterDaily = density * waterFactor * soilWaterMod;
+    const estYield = density * yieldFactor;
+
+    metricDensity.textContent = `${density} units`;
+    metricWater.textContent = `${waterDaily.toFixed(1)} gallons`;
+    metricYield.textContent = `${estYield.toFixed(0)} lbs`;
+    metricAdvice.innerHTML = adviceText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
+  // Bind Planner Listeners
+  plannerCrop.addEventListener('change', calculatePlannerYield);
+  plannerArea.addEventListener('input', calculatePlannerYield);
+  plannerSoil.addEventListener('change', calculatePlannerYield);
+
   // --- INITIALIZATION ---
   renderCategories();
   renderProducts();
   renderCart();
+  calculatePlannerYield();
 });
